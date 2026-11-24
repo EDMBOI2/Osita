@@ -1,0 +1,309 @@
+from flask import Flask, render_template_string
+
+app = Flask(__name__)
+
+MENSAJE = (
+    "Buenos dias mi vida hermosa, espero hayas podido descansar un poquito y "
+    "reponer energías para lo que queda de u, Se que tal vez no sea mucho, "
+    "pero quiero que sepas que aunque las cosas no esten saliendo como quieres, "
+    "siempre estare ahi para que te apoyes en mi, asi tengas un mal dia vida mia "
+    "cuenta conmigo para ayudarte a desconectar por un momento de todos esos "
+    "problemas que pasan por tu mentecita"
+)
+
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Para ti</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #f4f4f8;
+      background: radial-gradient(circle at top, #1b2240 0%, #0d1021 60%, #070913 100%);
+      overflow: hidden;
+      position: relative;
+    }
+
+    canvas#stars {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 440px;
+      padding: 36px 28px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+      text-align: center;
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .step {
+      display: none;
+      animation: fadeIn 0.7s ease forwards;
+    }
+
+    .step.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .icon {
+      font-size: 2.4rem;
+      margin-bottom: 16px;
+      display: inline-block;
+      animation: float 3.2s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-7px); }
+    }
+
+    h1 {
+      font-size: 1.45rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #ffffff;
+      line-height: 1.35;
+    }
+
+    p.subtitle {
+      font-size: 0.98rem;
+      color: #c9cfe8;
+      margin-bottom: 26px;
+      line-height: 1.6;
+    }
+
+    .message-box {
+      text-align: left;
+      font-size: 1.05rem;
+      line-height: 1.75;
+      color: #f3f5ff;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 22px 20px;
+      margin-bottom: 24px;
+      white-space: pre-wrap;
+    }
+
+    .btn {
+      display: inline-block;
+      width: 100%;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 14px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: #0d1021;
+      background: linear-gradient(135deg, #e0c3fc 0%, #9bb8ff 100%);
+      box-shadow: 0 8px 24px rgba(155, 184, 255, 0.28);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(155, 184, 255, 0.38);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      margin-top: 10px;
+      background: transparent;
+      color: #b7c0e0;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: none;
+      font-weight: 500;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: none;
+    }
+
+    .note {
+      margin-top: 14px;
+      font-size: 0.9rem;
+      color: #d6c8ff;
+      min-height: 22px;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    .note.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="stars"></canvas>
+
+  <main class="card">
+    <!-- Paso 1 -->
+    <section id="step-1" class="step active">
+      <div class="icon">✨</div>
+      <h1>Tengo un pequeño mensaje para ti hoy</h1>
+      <p class="subtitle">¿Quieres leer lo que te dejé aquí?</p>
+      <button class="btn" onclick="goToStep(2)">Sí, quiero leerlo</button>
+      <button class="btn btn-secondary" id="waitBtn" onclick="gentleNudge()">En un ratito</button>
+      <div id="nudgeNote" class="note"></div>
+    </section>
+
+    <!-- Paso 2 -->
+    <section id="step-2" class="step">
+      <div class="icon">🌙</div>
+      <h1>Antes de abrirlo...</h1>
+      <p class="subtitle">Suelta los hombros, respira profundo un segundo y deja afuera el ruido por un momento.</p>
+      <button class="btn" onclick="goToStep(3)">Listo, abrir mensaje</button>
+    </section>
+
+    <!-- Paso 3 -->
+    <section id="step-3" class="step">
+      <div class="icon">🖤</div>
+      <div class="message-box">{{ mensaje }}</div>
+      <button class="btn" id="hugBtn" onclick="sendSparkles()">Recibir un abrazo</button>
+      <div id="hugNote" class="note">Aquí estoy contigo hoy y siempre.</div>
+    </section>
+  </main>
+
+  <script>
+    function goToStep(stepNumber) {
+      document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+      document.getElementById('step-' + stepNumber).classList.add('active');
+    }
+
+    function gentleNudge() {
+      const note = document.getElementById('nudgeNote');
+      note.textContent = "No te toma ni un minuto, te lo prometo ✨";
+      note.classList.add('visible');
+    }
+
+    function sendSparkles() {
+      const hugNote = document.getElementById('hugNote');
+      const hugBtn = document.getElementById('hugBtn');
+      hugNote.classList.add('visible');
+      hugBtn.textContent = "Abrazo guardado 🖤";
+      burstStars();
+    }
+
+    // Fondo animado de estrellas
+    const canvas = document.getElementById('stars');
+    const ctx = canvas.getContext('2d');
+    let stars = [];
+    let sparkles = [];
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      stars = Array.from({ length: 90 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.6 + 0.3,
+        alpha: Math.random(),
+        speed: Math.random() * 0.015 + 0.004
+      }));
+    }
+
+    function burstStars() {
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      for (let i = 0; i < 40; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const velocity = Math.random() * 4 + 1.5;
+        sparkles.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(angle) * velocity,
+          vy: Math.sin(angle) * velocity,
+          r: Math.random() * 2.5 + 1,
+          life: 1
+        });
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (const s of stars) {
+        s.alpha += s.speed;
+        const opacity = 0.25 + Math.abs(Math.sin(s.alpha)) * 0.75;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(230, 235, 255, ${opacity})`;
+        ctx.fill();
+      }
+
+      for (let i = sparkles.length - 1; i >= 0; i--) {
+        const p = sparkles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.018;
+        if (p.life <= 0) {
+          sparkles.splice(i, 1);
+          continue;
+        }
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(224, 195, 252, ${p.life})`;
+        ctx.fill();
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+    draw();
+  </script>
+</body>
+</html>
+"""
+
+
+@app.route("/")
+def index():
+    return render_template_string(HTML_TEMPLATE, mensaje=MENSAJE)
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=False)
